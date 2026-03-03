@@ -56,7 +56,11 @@ app.use("/api/private/*", async (c, next) => {
 		return c.json({ error: "Authentication required" }, 401);
 	}
 
-	const secret = c.env.JWT_SECRET || "blackroad-os-default-secret";
+	const secret = c.env.JWT_SECRET;
+	if (!secret) {
+		return c.json({ error: "Auth service not configured" }, 503);
+	}
+
 	const payload = await verifyJWT(token, secret);
 
 	if (!payload) {
@@ -136,13 +140,20 @@ app.get("/singleton", async (c) => {
  * Initiate an OAuth 2.0 Authorization Code + PKCE flow.
  *
  * Query params:
- *   redirect_uri  (optional) – where to send the user after login
+ *   redirect_uri  (optional) – must be a relative path or omitted
  *
  * Returns a state token that must be passed to the identity provider's
  * authorization URL.  The state is stored in KV for 10 minutes.
  */
 app.get("/api/auth/login", async (c) => {
-	const redirectUri = c.req.query("redirect_uri") || "/";
+	const rawRedirect = c.req.query("redirect_uri") || "/";
+
+	// Only allow relative paths to prevent open redirect attacks
+	const redirectUri =
+		rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+			? rawRedirect
+			: "/";
+
 	const state = crypto.randomUUID();
 
 	await c.env.SESSIONS.put(`oauth_state:${state}`, redirectUri, {
@@ -162,16 +173,18 @@ app.get("/api/auth/login", async (c) => {
  *
  * Query params:
  *   state  – must match a previously-issued state token
- *   code   – authorization code from the identity provider
+ *   code   – authorization code from the identity provider (required)
  *
  * Issues a BlackRoad JWT (Bearer token, 24 h lifetime).
+ * In production, exchange `code` with your identity provider to
+ * retrieve real user identity before building the JWT subject.
  */
 app.get("/api/auth/callback", async (c) => {
 	const state = c.req.query("state");
 	const code = c.req.query("code");
 
-	if (!state) {
-		return c.json({ error: "Missing state parameter" }, 400);
+	if (!state || !code) {
+		return c.json({ error: "Missing state or code parameter" }, 400);
 	}
 
 	const redirectUri = await c.env.SESSIONS.get(`oauth_state:${state}`);
@@ -181,10 +194,16 @@ app.get("/api/auth/callback", async (c) => {
 
 	await c.env.SESSIONS.delete(`oauth_state:${state}`);
 
-	const secret = c.env.JWT_SECRET || "blackroad-os-default-secret";
+	const secret = c.env.JWT_SECRET;
+	if (!secret) {
+		return c.json({ error: "Auth service not configured" }, 503);
+	}
+
+	// sub is set to the authorization code here as a placeholder.
+	// In production, exchange `code` with your IdP to get a stable user ID.
 	const token = await signJWT(
 		{
-			sub: code || state,
+			sub: code,
 			name: "BlackRoad User",
 			email: "",
 			role: "contributor",
@@ -210,7 +229,11 @@ app.post("/api/auth/token", async (c) => {
 		return c.json({ error: "Token required" }, 400);
 	}
 
-	const secret = c.env.JWT_SECRET || "blackroad-os-default-secret";
+	const secret = c.env.JWT_SECRET;
+	if (!secret) {
+		return c.json({ error: "Auth service not configured" }, 503);
+	}
+
 	const payload = await verifyJWT(token, secret);
 
 	if (!payload) {

@@ -19,7 +19,7 @@ export interface TokenPayload {
 export async function generateCodeVerifier(): Promise<string> {
 	const buffer = new Uint8Array(32);
 	crypto.getRandomValues(buffer);
-	return btoa(String.fromCharCode(...buffer))
+	return btoa(Array.from(buffer, (b) => String.fromCharCode(b)).join(""))
 		.replace(/\+/g, "-")
 		.replace(/\//g, "_")
 		.replace(/=/g, "");
@@ -30,7 +30,9 @@ export async function generateCodeChallenge(verifier: string): Promise<string> {
 	const encoder = new TextEncoder();
 	const data = encoder.encode(verifier);
 	const digest = await crypto.subtle.digest("SHA-256", data);
-	return btoa(String.fromCharCode(...new Uint8Array(digest)))
+	return btoa(
+		Array.from(new Uint8Array(digest), (b) => String.fromCharCode(b)).join(""),
+	)
 		.replace(/\+/g, "-")
 		.replace(/\//g, "_")
 		.replace(/=/g, "");
@@ -86,7 +88,11 @@ export async function signJWT(
 		key,
 		encoder.encode(signingInput),
 	);
-	const sig = btoa(String.fromCharCode(...new Uint8Array(macBuffer)))
+	const sig = btoa(
+		Array.from(new Uint8Array(macBuffer), (b) =>
+			String.fromCharCode(b),
+		).join(""),
+	)
 		.replace(/\+/g, "-")
 		.replace(/\//g, "_")
 		.replace(/=/g, "");

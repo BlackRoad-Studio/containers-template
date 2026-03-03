@@ -28,6 +28,8 @@ export interface StripeEventResult {
  *
  * We reconstruct `<timestamp>.<rawBody>` and compare the HMAC against
  * the provided v1 value using a timing-safe comparison.
+ * Webhooks with a timestamp older than 5 minutes are rejected to
+ * prevent replay attacks (per Stripe's recommendation).
  */
 export async function verifyStripeSignature(
 	body: string,
@@ -39,6 +41,10 @@ export async function verifyStripeSignature(
 	const v1 = parts.find((p) => p.startsWith("v1="))?.split("=")[1];
 
 	if (!timestamp || !v1) return false;
+
+	// Reject webhooks older than 5 minutes
+	const webhookAge = Math.floor(Date.now() / 1000) - parseInt(timestamp, 10);
+	if (webhookAge > 300 || webhookAge < 0) return false;
 
 	const encoder = new TextEncoder();
 	const signingInput = `${timestamp}.${body}`;

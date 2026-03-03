@@ -1,78 +1,216 @@
-# Containers Starter
+# BlackRoad OS – Containers Worker
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/containers-template)
+## Status: 🟢 GREEN LIGHT – Production Ready
 
-![Containers Template Preview](https://imagedelivery.net/_yJ02hpOMj_EnGvsU2aygw/5aba1fb7-b937-46fd-fa67-138221082200/public)
+**Last Updated:** 2026-03-03 | **Maintained By:** BlackRoad OS, Inc.
 
-<!-- dash-content-start -->
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/BlackRoad-OS/containers-template)
 
-This is a [Container](https://developers.cloudflare.com/containers/) starter template.
+---
 
-It demonstrates basic Container configuration, launching and routing to individual container, load balancing over multiple container, running basic hooks on container status changes.
+## Overview
 
-<!-- dash-content-end -->
+A production-grade Cloudflare Workers + Containers application owned and operated by **BlackRoad OS, Inc.**
 
-Outside of this repo, you can start a new project with this template using [C3](https://developers.cloudflare.com/pages/get-started/c3/) (the `create-cloudflare` CLI):
+This Worker provides:
 
-```bash
-npm create cloudflare@latest -- --template=cloudflare/templates/containers-template
-```
+| Feature | Description |
+|---|---|
+| **Container routing** | Start, load-balance, and singleton-route Docker containers |
+| **OAuth 2.0 / OATH** | Authorization Code + PKCE flow with HS256 JWT tokens |
+| **Stripe integration** | Verified webhook handler for subscriptions and payments |
+| **Contributor API Converter** | Gated vendor-API proxy – all traffic routes through BlackRoad infra |
+
+---
+
+## Products & Pricing
+
+| Plan | Price | Features |
+|---|---|---|
+| **Basic** | $9 / month | Container routing, 1 instance, community support |
+| **Pro** | $29 / month | Load balancing, 5 instances, priority support |
+| **Enterprise** | $99 / month | Unlimited instances, SLA, dedicated support |
+
+> **Access to the codebase requires a BlackRoad Converter API key.**  
+> See [Contributor Access](#contributor-access--converter-api) below.
+
+---
 
 ## Getting Started
 
-First, run:
+### Prerequisites
+
+- Node.js 20+
+- A Cloudflare account with Workers and Containers enabled
+- Wrangler CLI (`npm install -g wrangler`)
+
+### Installation
 
 ```bash
 npm install
-# or
-yarn install
-# or
-pnpm install
-# or
-bun install
 ```
 
-Then run the development server (using the package manager of your choice):
+### Create KV Namespaces
+
+```bash
+wrangler kv namespace create SESSIONS
+wrangler kv namespace create API_KEYS
+```
+
+Copy the returned IDs into `wrangler.jsonc` (replace the placeholder values).
+
+### Set Secrets
+
+```bash
+wrangler secret put JWT_SECRET            # random 32+ char string
+wrangler secret put STRIPE_WEBHOOK_SECRET # from Stripe dashboard
+```
+
+### Local Development
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:8787](http://localhost:8787) with your browser to see the result.
+Open [http://localhost:8787](http://localhost:8787).
 
-You can start editing your Worker by modifying `src/index.ts` and you can start
-editing your Container by editing the content of `container_src`.
+### Deploy to Production
 
-## Deploying To Production
-
-| Command          | Action                                |
-| :--------------- | :------------------------------------ |
-| `npm run deploy` | Deploy your application to Cloudflare |
-
-## Learn More
-
-To learn more about Containers, take a look at the following resources:
-
-- [Container Documentation](https://developers.cloudflare.com/containers/) - learn about Containers
-- [Container Class](https://github.com/cloudflare/containers) - learn about the Container helper class
-
-Your feedback and contributions are welcome!
+```bash
+npm run deploy
+```
 
 ---
 
-## 📜 License & Copyright
+## API Reference
+
+### Container endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/container/:id` | Route to a specific container by ID |
+| `GET` | `/lb` | Load-balance across 3 container instances |
+| `GET` | `/singleton` | Single shared container instance |
+| `GET` | `/error` | Trigger container error (demo) |
+
+### Auth endpoints (OAuth 2.0 / OATH)
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/auth/login` | Initiate OAuth 2.0 + PKCE login |
+| `GET` | `/api/auth/callback` | OAuth callback – issues a Bearer JWT |
+| `POST` | `/api/auth/token` | Validate / introspect a token |
+
+**Login flow:**
+
+```
+GET /api/auth/login?redirect_uri=/dashboard
+→ { state, callbackUrl }
+
+GET /api/auth/callback?state=<state>&code=<code>
+→ { token, expiresIn: 86400, tokenType: "Bearer" }
+```
+
+**Token validation:**
+
+```
+POST /api/auth/token
+Authorization: Bearer <token>
+→ { valid: true, payload: { sub, name, email, role, iat, exp } }
+```
+
+### Stripe endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/stripe/webhook` | Receive and verify Stripe events |
+
+Handled events: `checkout.session.completed`, `customer.subscription.created`,
+`customer.subscription.updated`, `invoice.paid`.
+
+Configure in the [Stripe Dashboard](https://dashboard.stripe.com/webhooks):  
+Endpoint URL → `https://<your-worker>.workers.dev/api/stripe/webhook`
+
+### Contributor API Converter
+
+| Method | Path | Auth required |
+|---|---|---|
+| `POST` | `/api/converter/register` | Public |
+| `ALL` | `/api/converter/:vendor/*` | `X-BlackRoad-API-Key` |
+
+See [Contributor Access](#contributor-access--converter-api) for details.
+
+---
+
+## Contributor Access & Converter API
+
+> **All vendor API traffic must route through the BlackRoad Converter.**  
+> Direct calls to OpenAI, Anthropic, GitHub, or any other vendor are
+> **not permitted** for contributors.
+
+### How to get access
+
+1. Register for a Converter API key:
+
+```bash
+curl -X POST https://<your-worker>.workers.dev/api/converter/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"your-github-username","email":"you@example.com","reason":"Contributing to X"}'
+```
+
+2. You will receive a `brk_…` key.
+
+3. Include it in every request to the Converter:
+
+```bash
+curl https://<your-worker>.workers.dev/api/converter/openai/v1/chat/completions \
+  -H "X-BlackRoad-API-Key: brk_<your-key>" \
+  -H "Content-Type: application/json" \
+  -d '{ ... }'
+```
+
+### Approved contributors
+
+`@blackboxprogramming` and `@lucidia` have permanent full access and do not
+need a Converter API key.
+
+---
+
+## Architecture
+
+```
+Client
+  │
+  ▼
+Cloudflare Workers (src/index.ts)
+  ├── OAuth 2.0 + PKCE  →  KV: SESSIONS
+  ├── Stripe Webhook    →  signature verified, events dispatched
+  ├── Converter API     →  KV: API_KEYS  →  BlackRoad infra
+  └── Container Routes  →  Durable Objects (MyContainer)
+                               │
+                               ▼
+                         Docker container (Go, port 8080)
+```
+
+---
+
+## License & Copyright
 
 **Copyright © 2026 BlackRoad OS, Inc. All Rights Reserved.**
 
-**CEO:** Alexa Amundson | **PROPRIETARY AND CONFIDENTIAL**
+**PROPRIETARY AND CONFIDENTIAL**
 
-This software is NOT for commercial resale. Testing purposes only.
+This software is the exclusive property of BlackRoad OS, Inc. and may not be
+copied, distributed, modified, or used for any purpose without the express
+written consent of BlackRoad OS, Inc.
 
-### 🏢 Enterprise Scale:
-- 30,000 AI Agents
-- 30,000 Human Employees
-- CEO: Alexa Amundson
+- **Not** for commercial resale
+- **Not** for use by AI training pipelines
+- Contributor access requires a valid BlackRoad Converter API key
 
-**Contact:** blackroad.systems@gmail.com
+**CEO:** Alexa Amundson  
+**Contact:** blackroad.systems@gmail.com  
+**Security:** security@blackroad.io
 
 See [LICENSE](LICENSE) for complete terms.
+

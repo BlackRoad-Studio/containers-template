@@ -28,5 +28,24 @@
 			"tag": "v1"
 		}
 	],
-	"upload_source_maps": true
+	"upload_source_maps": true,
+	// KV namespaces – create with:
+	//   wrangler kv namespace create SESSIONS
+	//   wrangler kv namespace create API_KEYS
+	// then replace the placeholder IDs below with the real ones.
+	"kv_namespaces": [
+		{
+			"binding": "SESSIONS",
+			"id": "SESSIONS_KV_NAMESPACE_ID",
+			"preview_id": "SESSIONS_KV_NAMESPACE_PREVIEW_ID"
+		},
+		{
+			"binding": "API_KEYS",
+			"id": "API_KEYS_KV_NAMESPACE_ID",
+			"preview_id": "API_KEYS_KV_NAMESPACE_PREVIEW_ID"
+		}
+	]
+	// Secrets (never put real values here – use `wrangler secret put`):
+	//   wrangler secret put JWT_SECRET
+	//   wrangler secret put STRIPE_WEBHOOK_SECRET
 }

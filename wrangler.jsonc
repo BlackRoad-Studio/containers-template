@@ -28,5 +28,10 @@
 			"tag": "v1"
 		}
 	],
-	"upload_source_maps": true
+	"upload_source_maps": true,
+	"vars": {
+		"STRIPE_PUBLISHABLE_KEY": ""
+	}
+	// Stripe secrets must be set via: wrangler secret put STRIPE_SECRET_KEY
+	//                                 wrangler secret put STRIPE_WEBHOOK_SECRET
 }

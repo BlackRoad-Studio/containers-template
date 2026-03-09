@@ -35,13 +35,36 @@ background: linear-gradient(135deg, #FF1D6C 38.2%, #F5A623 61.8%);
 - **Font:** SF Pro Display, -apple-system, sans-serif
 - **Line height:** 1.618
 
+## 🔑 Contributor Access – Converter API Required
+
+> **You cannot contribute without a BlackRoad Converter API key.**
+
+All vendor API traffic (OpenAI, Anthropic, GitHub, etc.) **must** route
+through the BlackRoad Converter API.  Direct calls to external vendors
+are forbidden for contributors.
+
+### How to obtain a key
+
+```bash
+curl -X POST https://<worker>.workers.dev/api/converter/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"<your-github-username>","email":"<you@example.com>","reason":"<why you want to contribute>"}'
+```
+
+Include the returned `brk_…` key as `X-BlackRoad-API-Key` in every
+request to `/api/converter/*`.
+
+`@blackboxprogramming` and `@lucidia` have permanent full access and do
+not need to register.
+
 ## 📝 How to Contribute
 
 1. Fork the repository (for testing purposes only)
-2. Create a feature branch
-3. Follow BlackRoad brand guidelines
-4. Submit PR with detailed description
-5. All code becomes BlackRoad OS, Inc. property
+2. Register for a Converter API key (see above)
+3. Create a feature branch
+4. Follow BlackRoad brand guidelines
+5. Submit PR with detailed description
+6. All code becomes BlackRoad OS, Inc. property
 
 ## ⚖️ Legal
 

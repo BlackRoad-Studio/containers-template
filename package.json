@@ -17,7 +17,7 @@
 	},
 	"dependencies": {
 		"@cloudflare/containers": "0.1.1",
-		"hono": "4.12.4"
+		"hono": "4.12.5"
 	},
 	"devDependencies": {
 		"eslint": "^10.0.2",

@@ -16,7 +16,7 @@
 		]
 	},
 	"dependencies": {
-		"@cloudflare/containers": "0.1.1",
+		"@cloudflare/containers": "0.2.2",
 		"hono": "4.12.5"
 	},
 	"devDependencies": {
